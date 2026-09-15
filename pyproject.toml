@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "c64sid"
+version = "0.1.0"
+description = "Experimental Python C64 SID playback and forensic-capture toolkit"
+readme = "README_COMPLETE.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary - license not yet selected" }
+
+[tool.setuptools.packages.find]
+include = ["c64sid*", "patches*"]
+
+[tool.unittest]
+start-directory = "tests"

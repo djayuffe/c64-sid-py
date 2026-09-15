@@ -1,0 +1,9 @@
+# C64 SID Player - Python Requirements
+
+# Core - no external dependencies required for basic operation
+
+# Development dependencies (optional)
+# pytest>=7.0.0
+# mypy>=1.0.0
+# black>=22.0.0
+# pylint>=2.15.0

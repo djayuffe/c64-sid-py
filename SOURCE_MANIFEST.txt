@@ -1,0 +1,84 @@
+C64SID Python – FULL FIX package v2
+Generated: 2026-01-29 11:26:31 UTC
+Fixes (v2):
+- Removed remaining bare except/pass in playback coordinator teardown (debug toggle)
+- Removed sidpro_binary placeholder class (raise on import failure)
+- Implemented restore_sid_state in seeking.py (no more unfinished passes)
+
+Import checks:
+- sid_render: FAIL SyntaxError("name 'LAST_EXCEPTION' is assigned to before global declaration")
+- c64sid.sid.sid_parser: OK
+- c64sid.sid.playback.playback_coordinator: FAIL SyntaxError("name 'LAST_EXCEPTION' is assigned to before global declaration")
+- c64sid.sid.playback.seeking: FAIL SyntaxError("name 'LAST_EXCEPTION' is assigned to before global declaration")
+- c64sid.sid.sidpro_binary: OK
+
+Included files:
+CHANGELOG_COMPLETE.md
+README_COMPLETE.md
+SIDPRO_FORMAT.md
+SOURCE_MANIFEST.txt
+__pycache__/sid_render.cpython-311.pyc
+c64sid/__init__.py
+c64sid/__pycache__/__init__.cpython-311.pyc
+c64sid/__pycache__/logger.cpython-311.pyc
+c64sid/logger.py
+c64sid/sid/__init__.py
+c64sid/sid/__pycache__/__init__.cpython-311.pyc
+c64sid/sid/__pycache__/bus.cpython-311.pyc
+c64sid/sid/__pycache__/c64_system.cpython-311.pyc
+c64sid/sid/__pycache__/cia6526.cpython-311.pyc
+c64sid/sid/__pycache__/constants.cpython-311.pyc
+c64sid/sid/__pycache__/cpu6502.cpython-311.pyc
+c64sid/sid/__pycache__/cpu_illegals.cpython-311.pyc
+c64sid/sid/__pycache__/machine_timing.cpython-311.pyc
+c64sid/sid/__pycache__/memory_bank.cpython-311.pyc
+c64sid/sid/__pycache__/sid_chip.cpython-311.pyc
+c64sid/sid/__pycache__/sid_parser.cpython-311.pyc
+c64sid/sid/__pycache__/sid_types.cpython-311.pyc
+c64sid/sid/__pycache__/sidpro_binary.cpython-311.pyc
+c64sid/sid/__pycache__/sidpro_forensic.cpython-311.pyc
+c64sid/sid/__pycache__/varint.cpython-311.pyc
+c64sid/sid/__pycache__/vic_dma.cpython-311.pyc
+c64sid/sid/__pycache__/vic_ii.cpython-311.pyc
+c64sid/sid/analysis/__init__.py
+c64sid/sid/analysis/analyzer.py
+c64sid/sid/analysis/bpm_detector.py
+c64sid/sid/analysis/key_detector.py
+c64sid/sid/analysis/pattern_finder.py
+c64sid/sid/bus.py
+c64sid/sid/c64_system.py
+c64sid/sid/cia6526.py
+c64sid/sid/constants.py
+c64sid/sid/cpu6502.py
+c64sid/sid/cpu_illegals.py
+c64sid/sid/hle.py
+c64sid/sid/machine_timing.py
+c64sid/sid/memory_bank.py
+c64sid/sid/playback/__init__.py
+c64sid/sid/playback/__pycache__/__init__.cpython-311.pyc
+c64sid/sid/playback/playback_coordinator.py
+c64sid/sid/playback/seeking.py
+c64sid/sid/sid_chip.py
+c64sid/sid/sid_names.py
+c64sid/sid/sid_parser.py
+c64sid/sid/sid_types.py
+c64sid/sid/sidpro_binary.py
+c64sid/sid/sidpro_forensic.py
+c64sid/sid/sidpro_recorder.py
+c64sid/sid/varint.py
+c64sid/sid/vic_dma.py
+c64sid/sid/vic_ii.py
+requirements.txt
+sid_render.py
+sidpro_forensic.py
+tools/analyze_sid.py
+tools/sidpro_to_csv.py
+tools/sidpro_to_vgm.py
+tools/visualize_sidpro.py
+verify_fixes.py
+
+Hotfix:
+- Replaced in-function global LAST_EXCEPTION blocks with _record_exception() helper (avoids SyntaxError)
+
+Hotfix 2:
+- Rewrote seeking.py to remove malformed indentation and fully implement restore_sid_state
