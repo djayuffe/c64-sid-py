@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
 from .resid_lut import load_combined_waveform_table
 from .sid_types import C64Config, SidModel
@@ -232,7 +231,10 @@ class SidChip:
                 # Use reSID measurement tables for TRI/SAW/PULSE combinations
                 # where available; other combinations retain the deterministic
                 # approximation below.
-                combined_table = load_combined_waveform_table(self.model, ctrl & 0x70)
+                combined_table = (
+                    load_combined_waveform_table(self.model, ctrl & 0x70)
+                    if self.cfg.enableCombinedWaveforms else None
+                )
                 if combined_table is not None and not (ctrl & 0x80):
                     index = (ph >> 12) & 0x0FFF
                     if (ctrl & 0x10) and ring_mod and (self.phase[(v - 1) % 3] & 0x800000):

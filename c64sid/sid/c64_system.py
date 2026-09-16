@@ -10,7 +10,6 @@ from .machine_timing import MachineTiming, MachineModel
 from .memory_bank import MemoryBank
 from .sid_chip import SidChip
 from .sid_types import C64Config, InterruptEvent
-from .vic_dma import VicDma
 from .bus import Bus
 
 

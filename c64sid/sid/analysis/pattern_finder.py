@@ -1,7 +1,8 @@
 """Pattern detection and structure analysis for SID music."""
 from __future__ import annotations
 
-from typing import Dict, List, Any, Tuple, TYPE_CHECKING
+import hashlib
+from typing import Dict, List, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..sidpro_forensic import SIDProForensicExport
@@ -65,7 +66,9 @@ class PatternFinder:
                             'start_frame': start,
                             'length_frames': length,
                             'repeat_at_frame': match_start,
-                            'pattern_hash': hash(tuple(pattern))
+                            'pattern_hash': hashlib.sha256(
+                                '\x1f'.join(pattern).encode('utf-8')
+                            ).hexdigest(),
                         })
                         break
 

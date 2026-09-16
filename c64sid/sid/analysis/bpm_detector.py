@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Tuple, Any, TYPE_CHECKING
+from typing import Dict, List, Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..sidpro_forensic import SIDProForensicExport
@@ -20,22 +20,25 @@ class BPMDetector:
 
         config = export.metadata.get('config', {})
         clock_hz = config.get('clock_hz', 985248)
-        frame_rate = config.get('frame_rate', 50.0)
-
-        # Collect gate-on events for each voice
+        # Collect rising gate edges for each voice.  Sampling every frame where
+        # a note remains gated would measure the telemetry rate, not note onsets.
         gate_events: List[float] = []
+        previous_gates: Dict[tuple[int, int], bool] = {}
 
         for frame in frames:
             cycle = frame.get('cycle', 0)
             time_sec = cycle / clock_hz
 
             chips = frame.get('chips', [])
-            for chip in chips:
+            for chip_idx, chip in enumerate(chips):
                 voices = chip.get('voices', [])
-                for voice in voices:
+                for voice_idx, voice in enumerate(voices):
                     derived = voice.get('derived', {})
-                    if derived.get('gate'):
+                    key = (chip_idx, voice_idx)
+                    gate = bool(derived.get('gate'))
+                    if gate and not previous_gates.get(key, False):
                         gate_events.append(time_sec)
+                    previous_gates[key] = gate
 
         if len(gate_events) < 10:
             return {'bpm': None, 'confidence': 0.0, 'method': 'gate_events'}
@@ -74,9 +77,6 @@ class BPMDetector:
     @staticmethod
     def detect_from_play_calls(export: 'SIDProForensicExport') -> Dict[str, Any]:
         """Detect BPM from play routine call frequency."""
-        config = export.metadata.get('config', {})
-        frame_rate = config.get('frame_rate', 50.0)
-
         # Most SID tunes call play() at 50Hz (PAL) or 60Hz (NTSC)
         # BPM can be inferred if play() triggers notes at regular intervals
 
@@ -84,16 +84,6 @@ class BPMDetector:
         # - 50 Hz / 1 = 50 updates/sec -> 3000/min
         # - Notes every 2 frames = 25 Hz -> BPM ~150
         # - Notes every 4 frames = 12.5 Hz -> BPM ~75
-
-        # This is a simplified heuristic
-        patterns = {
-            1: 3000 / frame_rate,  # Every frame
-            2: 1500 / frame_rate,  # Every 2 frames
-            3: 1000 / frame_rate,  # Every 3 frames
-            4: 750 / frame_rate,   # Every 4 frames
-            6: 500 / frame_rate,   # Every 6 frames
-            8: 375 / frame_rate,   # Every 8 frames
-        }
 
         return {
             'bpm': None,

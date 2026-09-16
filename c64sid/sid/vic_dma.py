@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from ..logger import SystemLogger
 from .vic_ii import VicII
 
 

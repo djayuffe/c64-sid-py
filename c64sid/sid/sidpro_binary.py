@@ -8,7 +8,7 @@ import zlib
 from dataclasses import dataclass
 from typing import Any, BinaryIO, Dict, List, Optional
 
-from .varint import encode_varint, decode_varint, encode_varint_signed, decode_varint_signed
+from .varint import encode_varint, decode_varint
 
 MAGIC = b"SIDPRO\x06\x01"  # V6.1
 CHUNK_HEADER = 0x01
@@ -46,6 +46,8 @@ class DeltaEncoder:
         """Encode a single bus event with delta compression."""
         # Cycle delta
         cycle_delta = int(cycle - self.last_cycle)
+        if cycle_delta < 0:
+            raise ValueError('Bus events must be ordered by non-decreasing cycle')
         self.last_cycle = cycle
 
         # Value delta
@@ -96,6 +98,8 @@ class DeltaDecoder:
         self.current_cycle += cycle_delta
 
         # Control byte
+        if pos + 2 > len(data):
+            raise ValueError('Truncated SID-PRO bus event')
         control = data[pos]
         pos += 1
 
@@ -204,13 +208,14 @@ class BinaryReader:
     def read_chunk(self) -> Optional[tuple[int, bytes]]:
         """Read next chunk, returns (type, data) or None if EOF."""
         header = self.f.read(10)
-        if len(header) < 10:
+        if not header:
             return None
+        if len(header) != 10:
+            raise ValueError('Truncated SID-PRO chunk header')
 
         chunk_type, flags, length, expected_crc = struct.unpack('<BBII', header)
-
-        if chunk_type == CHUNK_EOF:
-            return (CHUNK_EOF, b'')
+        if flags & ~0x01:
+            raise ValueError(f'Unsupported SID-PRO chunk flags: {flags:#04x}')
 
         payload = self.f.read(length)
         if len(payload) != length:
@@ -221,9 +226,17 @@ class BinaryReader:
         if actual_crc != expected_crc:
             raise ValueError(f"CRC mismatch: expected {expected_crc:08x}, got {actual_crc:08x}")
 
+        if chunk_type == CHUNK_EOF:
+            if flags or length or expected_crc:
+                raise ValueError('Invalid SID-PRO EOF chunk')
+            return (CHUNK_EOF, b'')
+
         # Decompress if needed
         if flags & 0x01:
-            payload = zlib.decompress(payload)
+            try:
+                payload = zlib.decompress(payload)
+            except zlib.error as exc:
+                raise ValueError('Invalid compressed SID-PRO chunk') from exc
 
         return (chunk_type, payload)
 
@@ -232,7 +245,11 @@ class BinaryReader:
         chunks = {}
         while True:
             result = self.read_chunk()
-            if result is None or result[0] == CHUNK_EOF:
+            if result is None:
+                raise ValueError('Missing SID-PRO EOF chunk')
+            if result[0] == CHUNK_EOF:
+                if self.f.read(1):
+                    raise ValueError('Trailing bytes after SID-PRO EOF chunk')
                 break
             chunk_type, data = result
             chunks.setdefault(chunk_type, []).append(data)
@@ -248,10 +265,14 @@ class BinaryReader:
 
         # Decode events
         for _ in range(count):
+            if pos >= len(data):
+                raise ValueError('Truncated SID-PRO bus event stream')
             event, consumed = decoder.decode_event(data, pos)
             events.append(event)
             pos += consumed
 
+        if pos != len(data):
+            raise ValueError('Trailing bytes in SID-PRO bus event stream')
         return events
 
     def decode_io_events(self, data: bytes) -> List[tuple[float, int, int]]:

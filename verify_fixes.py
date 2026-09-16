@@ -30,7 +30,6 @@ def test_type_hints():
     print("Test 2: PlaybackCoordinator type hints...")
     try:
         from c64sid.sid.playback import PlaybackCoordinator
-        import inspect
 
         # Check if types are properly annotated
         coord = PlaybackCoordinator()
@@ -89,7 +88,7 @@ def test_interrupt_handling():
             print("  ✓ Interrupt servicing works without list modification errors")
             return True
         else:
-            print(f"  ✗ FAILED: Unexpected interrupt count change")
+            print("  ✗ FAILED: Unexpected interrupt count change")
             return False
 
     except Exception as e:
@@ -189,7 +188,7 @@ def test_sample_rate_validation():
                 return True
             print(f"  ⚠ Different error: {e}")
             return True  # Still okay
-        except RuntimeError as e:
+        except RuntimeError:
             # This is expected - no SID loaded
             # But if we got here, rate validation passed
             print("  ✓ Sample rate accepted (validation passed)")

@@ -4,14 +4,24 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c64sid"
-version = "0.1.0"
+version = "0.2.0"
 description = "Experimental Python C64 SID playback and forensic-capture toolkit"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary - license not yet selected" }
 
+[project.scripts]
+c64sid-render = "sid_render:main"
+c64sid-analyze = "tools.analyze_sid:main"
+c64sid-visualize = "tools.visualize_sidpro:main"
+c64sid-to-csv = "tools.sidpro_to_csv:main"
+c64sid-to-vgm = "tools.sidpro_to_vgm:main"
+
+[tool.setuptools]
+py-modules = ["sid_render", "sidpro_forensic"]
+
 [tool.setuptools.packages.find]
-include = ["c64sid*", "patches*"]
+include = ["c64sid*", "patches*", "tools*"]
 
 [tool.setuptools.package-data]
 "c64sid.sid.resid_lut" = ["*.dat"]

@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import zlib
 from pathlib import Path
 
 from c64sid.sid.c64_system import C64System
 from c64sid.sid.playback.seeking import SeekEngine
 from c64sid.sid.sid_parser import parse_sid_header
-from c64sid.sid.sidpro_binary import export_to_binary, load_from_binary
+from c64sid.sid.sidpro_binary import CHUNK_EOF, MAGIC, export_to_binary, load_from_binary
 from c64sid.sid.sidpro_forensic import SIDProForensicExport
 from tools.sidpro_to_csv import export_bus_events_csv
 from tools.sidpro_to_vgm import write_vgm
@@ -18,7 +19,7 @@ class RegressionTests(unittest.TestCase):
         import c64sid
         import patches
 
-        self.assertEqual(c64sid.__version__, '0.1.0')
+        self.assertEqual(c64sid.__version__, '0.2.0')
         self.assertEqual(patches.__version__, c64sid.__version__)
 
     def test_reference_trace_and_register_helpers(self) -> None:
@@ -72,6 +73,45 @@ class RegressionTests(unittest.TestCase):
         system._poll_irqs()
         self.assertEqual([event.type for event in system._pending_irqs], ['IRQ', 'NMI'])
 
+    def test_analysis_uses_gate_edges_and_stable_pattern_ids(self) -> None:
+        from c64sid.sid.analysis.bpm_detector import BPMDetector
+        from c64sid.sid.analysis.pattern_finder import PatternFinder
+
+        export = SIDProForensicExport()
+        export.metadata['config'] = {'clock_hz': 1_000}
+        frames = []
+        for onset in range(10):
+            cycle = onset * 500
+            frames.extend([
+                {'frame': cycle, 'cycle': cycle, 'chips': [{'voices': [{'derived': {'gate': True}}]}]},
+                {'frame': cycle + 100, 'cycle': cycle + 100, 'chips': [{'voices': [{'derived': {'gate': True}}]}]},
+                {'frame': cycle + 200, 'cycle': cycle + 200, 'chips': [{'voices': [{'derived': {'gate': False}}]}]},
+            ])
+        export.telemetry['frames'] = frames
+        self.assertEqual(BPMDetector.detect(export)['bpm'], 120.0)
+
+        loops_first = PatternFinder.find_loops(export, min_length=2)
+        loops_second = PatternFinder.find_loops(export, min_length=2)
+        self.assertEqual(loops_first, loops_second)
+        self.assertTrue(all(len(loop['pattern_hash']) == 64 for loop in loops_first))
+
+    def test_enhanced_wrapper_applies_its_public_configuration(self) -> None:
+        from patches import create_enhanced_emulator
+        from patches.cycle_exact_tests import run_component_smoke_tests
+
+        emulator = create_enhanced_emulator(
+            combined_waveforms=False,
+            adsr_pipeline=False,
+            noise_seed=0x123456,
+            num_chips=2,
+        )
+        self.assertFalse(emulator.sids[0].cfg.enableCombinedWaveforms)
+        self.assertFalse(emulator.sids[0].cfg.enableAdsrPipeline)
+        self.assertEqual(emulator.sids[0].cfg.noiseSeed, 0x123456)
+        emulator.write_register(0, 0x55, chip=1)
+        self.assertEqual(emulator.sids[1].regs[0], 0x55)
+        self.assertEqual(run_component_smoke_tests(emulator)['failed'], 0)
+
     def test_call_stops_at_routine_return(self) -> None:
         system = C64System()
         system.cpu.pc = 0x2000
@@ -110,10 +150,40 @@ class RegressionTests(unittest.TestCase):
             path = Path(directory) / 'capture.sidprob'
             export_to_binary(export.export_to_dict(compress=False), str(path))
             loaded = load_from_binary(str(path))
-        self.assertEqual(loaded['_bus_events_decoded'], [(0.0, 0, 1, 2)])
-        self.assertEqual(loaded['binary']['ram_initial'], b'\x00' * 65536)
-        self.assertEqual(loaded['binary']['ram_final'], b'\x01' * 65536)
-        self.assertEqual(loaded['analysis'], {'bpm': 120})
+            self.assertEqual(loaded['_bus_events_decoded'], [(0.0, 0, 1, 2)])
+            self.assertEqual(loaded['binary']['ram_initial'], b'\x00' * 65536)
+            self.assertEqual(loaded['binary']['ram_final'], b'\x01' * 65536)
+            self.assertEqual(loaded['analysis'], {'bpm': 120})
+
+            malformed = {
+                'missing-eof.sidprob': MAGIC,
+                'truncated-header.sidprob': MAGIC + b'\x01\x00\x00',
+                'eof-with-payload.sidprob': (
+                    MAGIC + bytes([CHUNK_EOF, 0]) + (1).to_bytes(4, 'little')
+                    + (0).to_bytes(4, 'little') + b'x'
+                ),
+            }
+            for filename, raw in malformed.items():
+                malformed_path = Path(directory) / filename
+                malformed_path.write_bytes(raw)
+                with self.assertRaises(ValueError, msg=filename):
+                    load_from_binary(str(malformed_path))
+
+            # A valid outer chunk with an incomplete event must report a
+            # validation error, rather than leaking an IndexError.
+            malformed_path = Path(directory) / 'truncated-event.sidprob'
+            malformed_path.write_bytes(
+                MAGIC
+                + bytes([2, 0])
+                + (2).to_bytes(4, 'little')
+                + zlib.crc32(b'\x01\x00').to_bytes(4, 'little')
+                + b'\x01\x00'
+                + bytes([CHUNK_EOF, 0])
+                + (0).to_bytes(4, 'little')
+                + (0).to_bytes(4, 'little')
+            )
+            with self.assertRaises(ValueError):
+                load_from_binary(str(malformed_path))
 
     def test_seeking_restores_ram_and_does_not_seek_past_target(self) -> None:
         system = C64System()

@@ -149,7 +149,7 @@ def visualize_activity(export: SIDProForensicExport):
         print("No activity data found")
         return
 
-    print(f"\n=== Voice Activity ===")
+    print("\n=== Voice Activity ===")
     print(f"Frames: {len(activity_levels)}")
     print(f"Max active voices: {max(activity_levels)}")
     print()

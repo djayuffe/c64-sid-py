@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Callable, List, Tuple
+from typing import Optional, List
 
-from ..logger import SystemLogger
 from .vic_dma import VicDma
 
 

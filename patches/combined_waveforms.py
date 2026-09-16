@@ -15,7 +15,6 @@ Reference: reSID waveform analysis, SID chip die photos, VICE measurements
 
 from __future__ import annotations
 import os
-from typing import Optional
 
 from c64sid.logger import SystemLogger
 from c64sid.sid.resid_lut import load_combined_waveform_table

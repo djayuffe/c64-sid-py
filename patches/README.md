@@ -1,59 +1,30 @@
-# Enhanced SID Emulator Patches
-## Experimental C64 SID Enhancement Components
+# Experimental SID components
 
-**Version:** 1.0.0
-**Generated:** 2026-01-11
-**License:** Same as parent project
-
-This patch collection provides experimental timing, filter, waveform, ADSR, and deterministic-DSP components. It is not a substitute for hardware validation or a claim of complete cycle accuracy.
-
-## What's Included
-
-✅ **VIC-II DMA** - Full badline + sprite cycle stealing
-✅ **CIA Timers** - One-shot mode, cascading, CNT edge counting
-✅ **SID Filter** - Non-linear 6581 resonance, accurate cutoff mapping
-✅ **Waveforms** - Combined waveform tables with hardware artifacts
-✅ **ADSR** - Attack→Decay bug, zero-attack bypass
-✅ **Deterministic DSP** - Cross-platform floating-point consistency
-✅ **Noise LFSR** - Configurable seeds (6581/8580/custom)
-✅ **Bus Persistence** - Color RAM, temperature-dependent decay
-✅ **Voice 3 Control** - Output disable nuances
-✅ **Test Vectors** - Cycle-exact validation suite
-
-## Quick Start
+`patches` contains experimental standalone helpers plus a small SID-only
+wrapper. They are useful for controlled experiments, but are not a complete C64
+emulator and do not establish hardware or cycle accuracy.
 
 ```python
-from patches.integration import create_enhanced_emulator
+from patches import create_enhanced_emulator
 
-# Create emulator with maximum accuracy
 emulator = create_enhanced_emulator(
-    model='6581',
-    enable_all_bugs=True,
-    enable_dma=True,
-    deterministic=True
+    model='6581', combined_waveforms=True, adsr_pipeline=True,
 )
-
-# Reset and use
-emulator.reset()
-emulator.step(1000)  # Advance 1000 cycles
+emulator.write_register(0x04, 0x21)
+emulator.step(1000)
+print(emulator.get_sample())
 ```
 
-See full documentation in README.md for detailed usage, configuration, and API reference.
+The wrapper's model, combined-waveform, ADSR-pipeline, noise-seed, and
+multi-chip settings are applied to its managed `SidChip` instances. Use
+`c64sid.sid.playback.PlaybackCoordinator` when CPU, CIA, VIC, and memory-map
+behavior are required.
 
-## Files
+Run the deterministic smoke checks from the repository root:
 
-- `vic_dma_enhanced.py` - VIC-II DMA cycle stealing
-- `cia_timer_enhanced.py` - CIA timer edge cases
-- `sid_filter_enhanced.py` - Non-linear filter
-- `combined_waveforms.py` - Waveform tables
-- `adsr_enhanced.py` - ADSR with bugs
-- `deterministic_components.py` - DSP, noise, bus persistence
-- `cycle_exact_tests.py` - Test vectors
-- `integration.py` - Integration layer
-- `README.md` - Full documentation
+```bash
+python3 patches/verify_installation.py
+```
 
-## Performance Impact
-
-Total overhead with all features: ~25%
-
-Individual features can be disabled for better performance.
+Individual helper modules may evolve independently; test them before using them
+for research or production work.

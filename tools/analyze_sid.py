@@ -38,7 +38,7 @@ def main():
 
         # BPM
         bpm_details = analysis['detailed_results']['bpm']
-        print(f"BPM Detection:")
+        print("BPM Detection:")
         print(f"  Method: {bpm_details.get('method', 'unknown')}")
         print(f"  BPM: {bpm_details.get('bpm', 'N/A')}")
         print(f"  Confidence: {bpm_details.get('confidence', 0) * 100:.1f}%")
@@ -48,13 +48,13 @@ def main():
 
         # Key
         key_details = analysis['detailed_results']['key']
-        print(f"Key Detection:")
+        print("Key Detection:")
         print(f"  Key: {key_details.get('key', 'N/A')} {key_details.get('mode', '')}")
         print(f"  Confidence: {key_details.get('confidence', 0) * 100:.1f}%")
         if 'chroma_profile' in key_details:
             profile = key_details['chroma_profile']
             notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-            print(f"  Pitch class distribution:")
+            print("  Pitch class distribution:")
             for i, val in enumerate(profile):
                 if val > 0.01:
                     print(f"    {notes[i]}: {val:.3f}")

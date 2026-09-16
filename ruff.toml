@@ -1,0 +1,8 @@
+[lint]
+select = ["E", "F"]
+ignore = [
+    "E501", # Existing opcode tables and register maps are intentionally compact.
+    "E701", # Compact opcode-table branches.
+    "E702", # Compact opcode-table statements.
+    "E741", # 6502 status register name follows the CPU convention.
+]

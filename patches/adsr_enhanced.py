@@ -13,7 +13,6 @@ Reference: SID datasheet, VICE ADSR analysis, hermit's research
 """
 
 from __future__ import annotations
-from typing import Literal
 
 from c64sid.logger import SystemLogger
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Literal, Optional
+from typing import List, Literal, Optional
 
 SidModel = Literal['6581', '8580', 'UNKNOWN']
 PlaybackMethod = Literal['VBI_Call', 'CIA_Interrupt']
@@ -54,6 +54,7 @@ class C64Config:
     roms: C64Roms = field(default_factory=C64Roms)
     busPersistenceCycles: int = 0x1D00
     enableAdsrPipeline: bool = True
+    enableCombinedWaveforms: bool = True
     noiseSeed: int = 0x7FFFFF
     exportDepth: Literal['NONE', 'BASIC', 'FULL'] = 'FULL'
 

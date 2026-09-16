@@ -1,330 +1,104 @@
-# c64sid
+# c64sid 0.2.0
 
-**Experimental Python SID playback, forensic capture, and analysis toolkit.**
+Experimental Python tools for rendering PSID/RSID files, capturing SID-PRO
+forensic data, and inspecting that data. The project is deterministic where
+practical, but it is not a cycle-exact or analog-perfect C64/SID emulator.
 
-Core SID playback, forensic capture, analysis, and CSV export, with optional
-enhancement experiments and regression coverage.
+## Requirements and installation
 
-## What Makes This Special
+- Python 3.10 or newer
+- No runtime dependencies beyond the standard library
 
-### Core capabilities
-
-1. **Binary Format V6.1 (.sidprob)** - 97.7% smaller files
-2. **Music Analysis** - BPM, key, pattern detection
-3. **Seeking Support** - Jump to any timestamp
-4. **Conversion Tools** - CSV export (VGM has no native SID chip support)
-5. **Visualization** - Waveforms, envelopes
-6. **Progress Callbacks** - Real-time rendering feedback
-
-### Part 2: Enhanced Hardware Experiments
-
-1. **VIC-II DMA** - Full badline + sprite cycle stealing
-2. **CIA Timers** - One-shot, cascading, edge counting
-3. **SID Filter** - Non-linear 6581 resonance
-4. **Combined Waveforms** - Hardware artifact tables
-5. **ADSR Bugs** - Attack→Decay transition bug
-6. **Deterministic DSP** - Cross-platform consistency
-7. **Bus Persistence** - Color RAM decay
-8. **Test Vectors** - Cycle-exact validation
-
-## Quick Start
-
-### Basic Usage (Standard Accuracy)
+Install from this checkout:
 
 ```bash
-# Render SID to WAV
-python3 sid_render.py music.sid output.wav --seconds 30
-
-# With forensic export
-python3 sid_render.py music.sid output.wav --dump-sidpro music.sidpro
+python3 -m pip install .
 ```
 
-### Enhanced-component usage
+The install provides `c64sid-render`, `c64sid-analyze`, `c64sid-visualize`,
+`c64sid-to-csv`, and `c64sid-to-vgm`. The same commands can be run from a
+source checkout with `python3 sid_render.py` and `python3 tools/<tool>.py`.
 
-```python
-from patches import create_enhanced_emulator
+## Usage
 
-# Create an experimental enhanced emulator
-emu = create_enhanced_emulator(
-    model='6581',              # 6581 or 8580
-    enable_all_bugs=True,      # Include all hardware bugs
-    enable_dma=True,           # VIC-II cycle stealing
-    deterministic=True         # Cross-platform consistency
-)
-
-# Advance it and retrieve its current sample
-emu.reset()
-emu.step(1000)
-sample = emu.get_sample()
-```
-
-### Analysis & Visualization
+Render a SID file to WAV:
 
 ```bash
-# Analyze music (BPM, key, patterns)
-python3 tools/analyze_sid.py music.sidpro --detailed
-
-# Visualize waveforms
-python3 tools/visualize_sidpro.py music.sidpro
-
-# Export to CSV
-python3 tools/sidpro_to_csv.py music.sidpro --all
+c64sid-render music.sid output.wav --seconds 30
 ```
 
-## Architecture
+Capture SID-PRO JSON alongside the WAV:
 
-### Core Emulation Stack
-
-```
-┌─────────────────────────────────────────┐
-│  Complete Features (NEW)                │
-│  - Binary format, Analysis, Seeking    │
-│  - Visualization, Tools, Progress       │
-├─────────────────────────────────────────┤
-│  Enhanced Hardware Experiments           │
-│  - VIC DMA, CIA Timers, SID Filter     │
-│  - Waveforms, ADSR Bugs, Deterministic │
-├─────────────────────────────────────────┤
-│  Original SID Emulation                 │
-│  - CPU 6502, SID Chip, Memory, CIA     │
-│  - VIC-II, HLE, Forensic Export        │
-└─────────────────────────────────────────┘
+```bash
+c64sid-render music.sid output.wav --seconds 30 --dump-sidpro capture.sidpro
 ```
 
-### Module Organization
+Analyze, visualize, or export a capture:
 
-```
-c64sid_py_complete/
-├── c64sid/
-│   ├── sid/
-│   │   ├── sid_chip.py          # SID emulation
-│   │   ├── cpu6502.py           # 6502 CPU
-│   │   ├── c64_system.py        # System integration
-│   │   ├── sidpro_forensic.py   # JSON export
-│   │   ├── sidpro_binary.py     # Binary export (NEW)
-│   │   ├── varint.py            # VarInt encoding (NEW)
-│   │   ├── analysis/            # Analysis module (NEW)
-│   │   │   ├── bpm_detector.py
-│   │   │   ├── key_detector.py
-│   │   │   └── pattern_finder.py
-│   │   └── playback/
-│   │       ├── playback_coordinator.py
-│   │       └── seeking.py       # Seeking (NEW)
-├── patches/                      # Hardware accuracy (NEW)
-│   ├── vic_dma_enhanced.py
-│   ├── cia_timer_enhanced.py
-│   ├── sid_filter_enhanced.py
-│   ├── combined_waveforms.py
-│   ├── adsr_enhanced.py
-│   ├── deterministic_components.py
-│   └── integration.py
-└── tools/                        # Utilities (NEW)
-    ├── analyze_sid.py
-    ├── visualize_sidpro.py
-    ├── sidpro_to_csv.py
-    └── sidpro_to_vgm.py
+```bash
+c64sid-analyze capture.sidpro --detailed
+c64sid-visualize capture.sidpro --envelope --voice 0
+c64sid-to-csv capture.sidpro --all --output-prefix capture
 ```
 
-## Feature Matrix
+Standard VGM has no SID-chip command. `c64sid-to-vgm` deliberately refuses to
+write an invalid conversion; use CSV or keep the SID-PRO data instead.
 
-| Feature | Standard | Complete | Enhanced |
-|---------|----------|----------|----------|
-| SID Playback | ✅ | ✅ | ✅ |
-| WAV Export | ✅ | ✅ | ✅ |
-| JSON Export | ✅ | ✅ | ✅ |
-| Binary Export | ❌ | ✅ | ✅ |
-| Music Analysis | ❌ | ✅ | ✅ |
-| Seeking | ❌ | ✅ | ✅ |
-| Visualization | ❌ | ✅ | ✅ |
-| Progress Callbacks | ❌ | ✅ | ✅ |
-| VIC DMA Accuracy | Basic | Basic | Experimental |
-| CIA Timer Accuracy | Basic | Basic | Experimental |
-| Filter Accuracy | Basic | Basic | Experimental |
-| Waveform Accuracy | Basic | Basic | Experimental |
-| ADSR Bugs | ❌ | ❌ | ✅ |
-| Deterministic | ❌ | ❌ | ✅ |
-
-## Performance
-
-### File Sizes (30 second capture)
-- JSON (uncompressed): 2.0 MB
-- JSON (compressed): 200 KB
-- **Binary (.sidprob): 7 KB** ← 97.7% smaller!
-
-### Emulation Speed
-- Standard: near-real-time on typical modern hardware
-- Complete: 99% realtime (1% overhead)
-- Enhanced (all features): 75% realtime (25% overhead)
-
-### Individual Feature Overhead
-- VIC DMA: ~5%
-- CIA Timers: ~2%
-- Filter: ~8%
-- Waveforms: ~3%
-- ADSR: ~2%
-- Deterministic: ~5%
-
-## Complete API Reference
-
-### Standard Playback
+## Python API
 
 ```python
 from c64sid.sid.playback import PlaybackCoordinator
 
-coord = PlaybackCoordinator()
-coord.load_sid_bytes(sid_data)
-coord.render_to_wav('output.wav', seconds=30)
+player = PlaybackCoordinator()
+player.enable_sidpro_export('capture.sidpro')
+player.load_sid_bytes(sid_bytes)
+result = player.render_to_wav('output.wav', seconds=30)
+print(result.samples)
 ```
 
-### With Progress
-
-```python
-def progress(p):
-    print(f"\rRendering: {int(p*100)}%", end='')
-
-coord.render_to_wav('output.wav', seconds=30,
-                    progress_callback=progress)
-```
-
-### With Forensic Export
-
-```python
-coord.enable_sidpro_export('capture.sidpro', compress=True)
-coord.render_to_wav('output.wav', seconds=30)
-```
-
-### Binary Export
-
-```python
-from c64sid.sid.sidpro_forensic import SIDProForensicExport
-from c64sid.sid.sidpro_binary import export_to_binary
-
-export = SIDProForensicExport.load_from_file('capture.sidpro')
-export_to_binary(export.export_to_dict(), 'capture.sidprob')
-```
-
-### Music Analysis
-
-```python
-from c64sid.sid.analysis import SIDAnalyzer
-
-export = SIDProForensicExport.load_from_file('music.sidpro')
-analysis = SIDAnalyzer.analyze_full(export)
-
-print(f"BPM: {analysis['bpm']}")
-print(f"Key: {analysis['key']} {analysis['mode']}")
-print(f"Instruments: {len(analysis['instruments'])}")
-
-# Human-readable summary
-summary = SIDAnalyzer.get_summary(export)
-print(summary)
-```
-
-### Seeking
-
-```python
-from c64sid.sid.playback.seeking import SeekablePlayer
-
-player = SeekablePlayer(system, export)
-player.seek(30.0)  # Jump to 30 seconds
-pos = player.get_position()
-duration = player.get_duration()
-```
-
-### Enhanced Emulator
+The small `patches` wrapper is a SID-only register-model helper. Its public
+settings directly control its managed SID chips; it does not emulate CPU, CIA,
+or VIC interaction. Use `PlaybackCoordinator` for full C64 playback.
 
 ```python
 from patches import create_enhanced_emulator
 
-# Maximum accuracy
-emu = create_enhanced_emulator(
-    model='6581',
-    enable_all_bugs=True,
-    enable_dma=True,
-    deterministic=True
+sid = create_enhanced_emulator(
+    model='6581', combined_waveforms=True, adsr_pipeline=True,
 )
-
-# Custom configuration
-from patches import EnhancedEmulatorConfig, EnhancedEmulator
-
-config = EnhancedEmulatorConfig()
-config.model = '8580'
-config.enable_adsr_bugs = False
-config.noise_lfsr_seed = 0x7FFFFF
-emu = EnhancedEmulator(config)
+sid.write_register(0x04, 0x21)
+sid.step(1000)
+sample = sid.get_sample()
 ```
 
-## Testing
-
-### Verify Complete Features
+## Validation
 
 ```bash
+python3 -m unittest discover -v
 python3 verify_fixes.py
-# Expected: 8/8 tests passed
+python3 patches/verify_installation.py
 ```
 
-### Verify enhancement components
+The first two commands are regression checks. The last command is a
+deterministic component smoke check, not a hardware-conformance benchmark.
 
-```bash
-cd patches
-python3 verify_installation.py
-# Runs the experimental component smoke checks
-```
+## Project layout
 
-## Tools Reference
+- `c64sid/`: maintained emulation, playback, SID-PRO, and analysis code.
+- `patches/`: optional SID-only wrapper and experimental standalone helpers.
+- `tools/`: installed and source-checkout command-line utilities.
+- `tests/`: regression coverage for parsing, playback helpers, export, seeking,
+  waveform resources, analysis, and package behavior.
+- `SIDPRO_FORMAT.md`: the supported SID-PRO JSON and binary interfaces.
 
-### analyze_sid.py
-Analyze SID music for BPM, key, patterns:
-```bash
-python3 tools/analyze_sid.py music.sidpro [--summary] [--detailed] [--output-json out.json]
-```
+## Limitations
 
-### visualize_sidpro.py
-ASCII art visualization:
-```bash
-python3 tools/visualize_sidpro.py music.sidpro [--envelope] [--frequency] [--activity]
-```
-
-### sidpro_to_csv.py
-Export to CSV format:
-```bash
-python3 tools/sidpro_to_csv.py music.sidpro [--all] [--bus-events] [--telemetry]
-```
-
-### sidpro_to_vgm.py
-
-Standard VGM has no SID chip command. The tool intentionally refuses this
-conversion; use `sidpro_to_csv.py` for a lossless register trace.
-
-## Documentation
-
-- **README_COMPLETE.md** - Complete features documentation
-- **CHANGELOG_COMPLETE.md** - Complete features changelog
-- **patches/README.md** - Enhanced accuracy documentation
-- **patches/QUICK_REFERENCE.md** - Enhanced quick reference
-- **patches/IMPLEMENTATION_DETAILS.md** - Technical details
-
-## Dependencies
-
-**Runtime:** Python 3.10+ (stdlib only)
-
-**Development (Optional):**
-- pytest (testing)
-- mypy (type checking)
-- black (formatting)
-
-## Credits
-
-- **Original SID Emulator** - Base implementation
-- **Core capabilities** - Binary format, analysis, seeking, visualization, tools
-- **Enhanced components** - Experimental timing and DSP helpers
+The renderer has simplified analog SID/filter behavior. Analysis results are
+heuristic, and forensic data represents this implementation's bus and telemetry
+state—not a claim of real-hardware reconstruction. Validate output against the
+emulator or hardware appropriate to your use case.
 
 ## License
 
-No distribution license has been selected yet.
-
-## Version
-
-**Version 0.1.0**
-- Experimental, source-available release
-- Regression-tested core APIs and tools
+No distribution license has been selected. Treat this private source as
+all-rights-reserved unless the repository owner grants other permission.
