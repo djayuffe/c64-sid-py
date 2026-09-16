@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Optional
 
+from .resid_lut import load_combined_waveform_table
 from .sid_types import C64Config, SidModel
 
 
@@ -228,8 +229,20 @@ class SidChip:
                     wave = ((n / 0x3FFFFF) - 1.0)
             else:
                 # Multiple waveforms selected
-                # Real hardware combines via digital logic gates (complex)
-                # This is an improved approximation using weighted average
+                # Use reSID measurement tables for TRI/SAW/PULSE combinations
+                # where available; other combinations retain the deterministic
+                # approximation below.
+                combined_table = load_combined_waveform_table(self.model, ctrl & 0x70)
+                if combined_table is not None and not (ctrl & 0x80):
+                    index = (ph >> 12) & 0x0FFF
+                    if (ctrl & 0x10) and ring_mod and (self.phase[(v - 1) % 3] & 0x800000):
+                        index ^= 0x0FFF
+                    wave = (combined_table[index] / 2047.5) - 1.0
+                    voice_out[v] = wave * amp
+                    continue
+
+                # Real hardware combines via digital logic gates (complex).
+                # This is the deterministic fallback for unsupported modes.
                 wave_sum = 0.0
                 wave_count = 0
 

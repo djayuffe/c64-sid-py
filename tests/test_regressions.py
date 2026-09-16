@@ -21,6 +21,49 @@ class RegressionTests(unittest.TestCase):
         self.assertEqual(c64sid.__version__, '0.1.0')
         self.assertEqual(patches.__version__, c64sid.__version__)
 
+    def test_reference_trace_and_register_helpers(self) -> None:
+        from c64sid.sid.cia_names import analyze_cia_write, get_cia_reg_name
+        from c64sid.sid.trace_recorder import SidTraceRecorder, b64encode_bytes
+        from c64sid.sid.vic_names import analyze_vic_write, get_vic_reg_name
+
+        recorder = SidTraceRecorder()
+        recorder.set_cycle(7)
+        recorder.tick(0x12)
+        recorder.tick_idle(2, 0x34)
+        cycles, data = recorder.snapshot()
+        self.assertEqual(cycles, b'\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00')
+        self.assertEqual(data, b'\x12\x34\x34')
+        self.assertEqual(b64encode_bytes(b'abc', chunk_size=1), 'YWJj')
+        self.assertEqual(get_cia_reg_name(0x1D), 'ICR')
+        self.assertIn('set mask', analyze_cia_write(0x0D, 0x81))
+        self.assertEqual(get_vic_reg_name(0x11), 'CTRL1')
+        self.assertIn('den=1', analyze_vic_write(0x11, 0x10))
+
+    def test_bundled_resid_combined_waveform_tables_load(self) -> None:
+        from patches.combined_waveforms import CombinedWaveformTables
+        from c64sid.sid.resid_lut import load_combined_waveform_table
+
+        tables = CombinedWaveformTables('6581')
+        self.assertTrue(tables.loaded_resid_tables)
+        self.assertEqual(len(tables.tables[0x30]), 4096)
+        self.assertNotEqual(tables.tables[0x50], tables.tables[0x60])
+        self.assertEqual(tables.tables[0x30][1], load_combined_waveform_table('6581', 0x30)[1])
+
+    def test_sid_chip_uses_bundled_combined_waveform_tables(self) -> None:
+        from c64sid.sid.resid_lut import load_combined_waveform_table
+        from c64sid.sid.sid_chip import SidChip
+
+        table = load_combined_waveform_table('6581', 0x30)
+        self.assertIsNotNone(table)
+        index = next(index for index, value in enumerate(table) if value not in (0, 4095))
+        chip = SidChip(985_248)
+        chip.set_model('6581')
+        chip.phase[0] = index << 12
+        chip.env[0] = 255
+        chip.regs[0x04] = 0x30
+        chip.regs[0x18] = 0x0F
+        self.assertAlmostEqual(chip.render_sample(), (((table[index] / 2047.5) - 1.0) / 3.0))
+
     def test_peripheral_interrupts_queue_with_correct_line_type(self) -> None:
         system = C64System()
         system.memory.cia1.irqLine = True

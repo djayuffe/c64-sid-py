@@ -18,6 +18,7 @@ import os
 from typing import Optional
 
 from c64sid.logger import SystemLogger
+from c64sid.sid.resid_lut import load_combined_waveform_table
 
 
 class CombinedWaveformTables:
@@ -39,6 +40,7 @@ class CombinedWaveformTables:
 
     def __init__(self, model: str = '6581'):
         self.model = model
+        self.loaded_resid_tables = False
 
         # Tables indexed by [waveform_bits][phase_accumulator >> 12]
         # Each waveform combination has 4096 possible outputs
@@ -197,7 +199,17 @@ class CombinedWaveformTables:
         These files contain measurements from real SID chips and provide
         much better accuracy than mathematical approximations.
         """
-        # Look for reSID lookup table files
+        if self._load_bundled_resid_tables():
+            self.loaded_resid_tables = True
+            SystemLogger.log(
+                'SID-Waveforms',
+                f'Loaded bundled reSID waveform tables for {self.model}',
+                'info',
+                category='sidwave'
+            )
+            return
+
+        # Look for a full external reSID lookup table file.
         resid_paths = [
             f'/home/claude/c64sid/sid/resid_lut/wave{self.model}.dat',
             f'/mnt/user-data/uploads/resid_wave{self.model}.dat',
@@ -229,6 +241,24 @@ class CombinedWaveformTables:
             'info',
             category='sidwave'
         )
+
+    def _load_bundled_resid_tables(self) -> bool:
+        """Load the bundled 8-bit reSID combined-waveform measurements.
+
+        The reference archive supplies four 4096-entry tables per SID model.
+        They cover the available multi-wave combinations and are scaled from
+        the measured seven-bit DAC values to the
+        12-bit range used by this module. Other combinations keep their
+        deterministic mathematical fallback tables.
+        """
+        loaded = False
+        for waveform in (0x30, 0x50, 0x60, 0x70):
+            table = load_combined_waveform_table(self.model, waveform)
+            if table is None:
+                continue
+            self.tables[waveform] = list(table)
+            loaded = True
+        return loaded
 
     def _load_resid_file(self, path: str) -> None:
         """Load binary reSID waveform table file.

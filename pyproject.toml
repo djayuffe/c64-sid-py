@@ -13,5 +13,8 @@ license = { text = "Proprietary - license not yet selected" }
 [tool.setuptools.packages.find]
 include = ["c64sid*", "patches*"]
 
+[tool.setuptools.package-data]
+"c64sid.sid.resid_lut" = ["*.dat"]
+
 [tool.unittest]
 start-directory = "tests"
