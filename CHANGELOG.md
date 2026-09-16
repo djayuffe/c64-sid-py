@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3 — 2026-09-16
+
+- Updated package repository and release URLs to the public `c64-sid-py`
+  repository after the rename.
+- Expanded the package description, keywords, README command reference,
+  output expectations, and public-project status guidance.
+- Audited tracked source and documentation; no further obsolete runtime code
+  remained after the 0.3.0 cleanup.
+
 ## 0.3.2 — 2026-09-16
 
 - Added `c64sid-inspect` and a parser API example for fast PSID/RSID metadata

@@ -1,6 +1,6 @@
 # Repository contents
 
-The `c64sid` 0.3.2 source repository provides these supported surfaces:
+The `c64sid` 0.3.3 source repository provides these supported surfaces:
 
 | Area | Contents |
 | --- | --- |

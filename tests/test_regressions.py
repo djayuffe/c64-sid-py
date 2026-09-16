@@ -17,7 +17,7 @@ class RegressionTests(unittest.TestCase):
     def test_package_versions_are_aligned(self) -> None:
         import c64sid
 
-        self.assertEqual(c64sid.__version__, '0.3.2')
+        self.assertEqual(c64sid.__version__, '0.3.3')
 
     @staticmethod
     def _minimal_sid(*, songs: int = 1, start_song: int = 1) -> bytes:

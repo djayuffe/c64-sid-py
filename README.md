@@ -1,4 +1,4 @@
-# c64sid 0.3.2
+# c64sid 0.3.3
 
 Python tools for rendering PSID/RSID files, capturing SID-PRO
 forensic data, and inspecting that data. The project is deterministic where
@@ -39,6 +39,9 @@ c64sid-inspect music.sid
 c64sid-inspect music.sid --json
 ```
 
+The human-readable report includes title, author, version, default subsong,
+load/init/play addresses, video standard, SID chip models, and payload size.
+
 ## Render and capture
 
 Render a SID file to WAV:
@@ -72,6 +75,19 @@ c64sid-to-csv capture.sidpro --all --output-prefix capture
 
 The CSV tool derives its analysis report from telemetry when a capture does
 not already contain persisted analysis data.
+
+## Command reference
+
+| Command | Input | Primary output |
+| --- | --- | --- |
+| `c64sid-inspect` | PSID/RSID | Header report or JSON metadata |
+| `c64sid-render` | PSID/RSID | Mono 16-bit PCM WAV; optional `.sidpro` capture |
+| `c64sid-analyze` | `.sidpro` | Terminal summary or analysis JSON |
+| `c64sid-visualize` | `.sidpro` | ASCII envelope, frequency, and activity views |
+| `c64sid-to-csv` | `.sidpro` | Bus-event, telemetry, and analysis CSV files |
+
+All CLI commands support `--help`; installed builds also report their release
+with `--version` where applicable.
 
 ## Python API
 
@@ -131,6 +147,13 @@ The renderer has simplified analog SID/filter behavior. Analysis results are
 heuristic, and forensic data represents this implementation's bus and telemetry
 state—not a claim of real-hardware reconstruction. Validate output against the
 emulator or hardware appropriate to your use case.
+
+## Project status
+
+This is a public Python toolkit with a standard-library-only runtime. Its SID
+models and analysis are useful for experimentation, inspection, and offline
+rendering; they are not a substitute for hardware verification or a
+cycle-exact emulator.
 
 ## License
 

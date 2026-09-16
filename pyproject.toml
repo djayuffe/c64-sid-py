@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c64sid"
-version = "0.3.2"
-description = "Python C64 SID playback, rendering, forensic-capture, and analysis toolkit"
+version = "0.3.3"
+description = "Inspect PSID/RSID files, render C64 SID audio to WAV, capture SID-PRO telemetry, and analyze or export results"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Proprietary - license not yet selected" }
-keywords = ["c64", "chiptune", "commodore-64", "psid", "rsid", "sid", "sound"]
+keywords = ["audio-analysis", "c64", "chiptune", "commodore-64", "psid", "retrocomputing", "rsid", "sid", "wav"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -22,8 +22,8 @@ classifiers = [
 ]
 
 [project.urls]
-Repository = "https://github.com/djayuffe/c64sid_py_complete_FULL_FIX_v2"
-Releases = "https://github.com/djayuffe/c64sid_py_complete_FULL_FIX_v2/releases"
+Repository = "https://github.com/djayuffe/c64-sid-py"
+Releases = "https://github.com/djayuffe/c64-sid-py/releases"
 
 [project.scripts]
 c64sid-render = "sid_render:main"
