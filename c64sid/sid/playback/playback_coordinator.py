@@ -259,7 +259,10 @@ class PlaybackCoordinator:
                 if sys.byteorder != 'little':
                     pcm_buffer.byteswap()
                 wf.writeframesraw(pcm_buffer.tobytes())
-                pcm_buffer.clear()
+                # ``array.clear`` is not available on every supported Python
+                # runtime. Slice deletion clears in place while retaining the
+                # reusable buffer allocation.
+                del pcm_buffer[:]
 
             for n in range(frames):
                 # Progress callback
