@@ -14,6 +14,13 @@ from tools.sidpro_to_vgm import write_vgm
 
 
 class RegressionTests(unittest.TestCase):
+    def test_package_versions_are_aligned(self) -> None:
+        import c64sid
+        import patches
+
+        self.assertEqual(c64sid.__version__, '0.1.0')
+        self.assertEqual(patches.__version__, c64sid.__version__)
+
     def test_peripheral_interrupts_queue_with_correct_line_type(self) -> None:
         system = C64System()
         system.memory.cia1.irqLine = True
@@ -72,6 +79,24 @@ class RegressionTests(unittest.TestCase):
         export = SIDProForensicExport()
         export.telemetry['frames'] = [{'cycle': 10}, {'cycle': 20}]
         self.assertEqual(SeekEngine.find_nearest_frame(export, 15), 0)
+
+    def test_seeking_restores_voice_state(self) -> None:
+        from c64sid.sid.sid_chip import SidChip
+        from c64sid.sid.sid_types import C64Config
+
+        sid = SidChip(985248, C64Config())
+        SeekEngine.restore_sid_state(sid, {
+            'osc': {'acc': 0x123456, 'lfsr': 0x12345},
+            'env': {'out': 77, 'state': 'D', 'counter': 12, 'rate_counter': 34},
+            'reg': {'freq': 0x3456, 'pw': 0x789, 'ctrl': 0x21, 'ad': 0x42, 'sr': 0xA3},
+            'derived': {'gate': True},
+        }, 1)
+        self.assertEqual(sid.phase[1], 0x123456)
+        self.assertEqual(sid.noise[1], 0x12345)
+        self.assertEqual(sid.env[1], 77)
+        self.assertEqual(sid.env_state[1], 'D')
+        self.assertTrue(sid.gate[1])
+        self.assertEqual(sid.regs[0x07:0x0E], bytes([0x56, 0x34, 0x89, 0x07, 0x21, 0x42, 0xA3]))
 
     def test_csv_supports_uncompressed_exports_and_vgm_is_rejected(self) -> None:
         export = SIDProForensicExport()

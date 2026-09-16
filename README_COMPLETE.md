@@ -1,16 +1,16 @@
-# C64 SID Python Emulator - Complete Edition
+# c64sid 0.1.0 — Historical capability inventory
 
 > Status note: this historical feature inventory predates the current audit. VGM
 > conversion is not supported because standard VGM has no SID chip command; the
 > enhanced components are experimental rather than hardware-certified.
 
-**100% Feature Complete Implementation** with SID-PRO V6 Forensic Export, Analysis, and Visualization
+SID-PRO V6 forensic export, analysis, and visualization capabilities.
 
 ## What's New in This Complete Edition
 
-### ✅ All Missing Features Implemented
+### Included capabilities
 
-This release includes **100% of previously missing features**:
+This source bundle includes the following capabilities:
 
 1. **Binary Format V6.1 (.sidprob)** ✅
    - Delta compression (73% reduction)
@@ -376,5 +376,5 @@ Same as original project.
 
 ## Credits
 
-Complete implementation based on original C64 SID Python emulator.
-All new features: Binary format, analysis, seeking, visualization, tools.
+Experimental implementation based on the original C64 SID Python emulator.
+Included tools: binary format support, analysis, seeking, visualization, and export.

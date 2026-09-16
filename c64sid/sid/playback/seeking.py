@@ -28,36 +28,47 @@ class SeekEngine:
         return best_idx
 
     @staticmethod
-    def restore_sid_state(sid_chip, voice_data: Dict[str, Any]):
-        """Restore SID voice state from telemetry."""
+    def restore_sid_state(sid_chip, voice_data: Dict[str, Any], voice_idx: int = 0) -> None:
+        """Restore one SID voice from a telemetry snapshot.
+
+        ``snapshot_forensic`` records voice-local state, so this helper restores
+        the matching register window as well as oscillator and envelope state.
+        """
+        if not 0 <= voice_idx < 3:
+            raise ValueError(f'Invalid SID voice index: {voice_idx}')
+
         osc = voice_data.get('osc', {})
         env = voice_data.get('env', {})
         regs = voice_data.get('reg', {})
+        base = (0x00, 0x07, 0x0E)[voice_idx]
 
-        # Phase accumulator
+        if regs:
+            freq = int(regs.get('freq', 0)) & 0xFFFF
+            pulse_width = int(regs.get('pw', 0)) & 0x0FFF
+            sid_chip.regs[base] = freq & 0xFF
+            sid_chip.regs[base + 1] = freq >> 8
+            sid_chip.regs[base + 2] = pulse_width & 0xFF
+            sid_chip.regs[base + 3] = (pulse_width >> 8) & 0x0F
+            for key, offset in (('ctrl', 4), ('ad', 5), ('sr', 6)):
+                if key in regs:
+                    sid_chip.regs[base + offset] = int(regs[key]) & 0xFF
+
         if 'acc' in osc:
-            voice_idx = 0  # Need to know which voice
-            # This would be called per voice
-            # sid_chip.phase[voice_idx] = osc['acc']
-
-        # Noise LFSR
+            sid_chip.phase[voice_idx] = int(osc['acc']) & 0xFFFFFF
         if 'lfsr' in osc:
-            # sid_chip.noise[voice_idx] = osc['lfsr']
-            pass
-
-        # Envelope
+            sid_chip.noise[voice_idx] = int(osc['lfsr']) & 0x7FFFFF
         if 'out' in env:
-            # sid_chip.env[voice_idx] = env['out']
-            pass
-        if 'state' in env:
-            # sid_chip.env_state[voice_idx] = env['state']
-            pass
+            sid_chip.env[voice_idx] = int(env['out']) & 0xFF
+        if env.get('state') in ('A', 'D', 'S', 'R'):
+            sid_chip.env_state[voice_idx] = str(env['state'])
         if 'counter' in env:
-            # sid_chip.env_pipeline[voice_idx] = env['counter']
-            pass
+            sid_chip.env_pipeline[voice_idx] = int(env['counter']) & 0xFF
         if 'rate_counter' in env:
-            # sid_chip.env_timer[voice_idx] = env.get('rate_counter', 0)
-            pass
+            sid_chip.env_timer[voice_idx] = int(env['rate_counter'])
+
+        derived = voice_data.get('derived', {})
+        if 'gate' in derived:
+            sid_chip.gate[voice_idx] = bool(derived['gate'])
 
     @staticmethod
     def restore_filter_state(sid_chip, filter_data: Dict[str, Any]):
@@ -81,35 +92,7 @@ class SeekEngine:
         # Voices
         voices = chip_data.get('voices', [])
         for voice_idx, voice_data in enumerate(voices[:3]):
-            osc = voice_data.get('osc', {})
-            env = voice_data.get('env', {})
-
-            # Phase accumulator
-            if 'acc' in osc:
-                sid_chip.phase[voice_idx] = int(osc['acc']) & 0xFFFFFF
-
-            # Noise LFSR
-            if 'lfsr' in osc:
-                sid_chip.noise[voice_idx] = int(osc['lfsr']) & 0x7FFFFF
-
-            # Envelope
-            if 'out' in env:
-                sid_chip.env[voice_idx] = int(env['out']) & 0xFF
-
-            state_map = {'A': 'A', 'D': 'D', 'S': 'S', 'R': 'R'}
-            if 'state' in env and env['state'] in state_map:
-                sid_chip.env_state[voice_idx] = state_map[env['state']]
-
-            if 'counter' in env:
-                sid_chip.env_pipeline[voice_idx] = int(env['counter']) & 0xFF
-
-            if 'rate_counter' in env:
-                sid_chip.env_timer[voice_idx] = int(env['rate_counter'])
-
-            # Gate state
-            derived = voice_data.get('derived', {})
-            if 'gate' in derived:
-                sid_chip.gate[voice_idx] = bool(derived['gate'])
+            SeekEngine.restore_sid_state(sid_chip, voice_data, voice_idx)
 
         # Filter
         filter_data = chip_data.get('filter', {})

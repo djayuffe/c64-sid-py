@@ -1,4 +1,4 @@
-# CHANGELOG - Complete Implementation
+# Changelog — historical implementation notes
 
 ## [COMPLETE] - 2025-01-11
 
@@ -200,5 +200,5 @@ Possible future additions:
 
 ## Acknowledgments
 
-Complete implementation of all missing features from analysis document.
-100% feature parity with specification achieved.
+Historical notes for the source import. Capability and accuracy claims are not
+release certification.

@@ -1,6 +1,6 @@
 # SID-PRO Forensic Export Format (V6)
 
-**Complete Technical Specification for 100% Bit-Correct C64 SID Reproducibility**
+**Technical format specification for reproducible C64 SID forensic captures**
 
 The **SID-PRO Forensic Export Format** is designed for high-fidelity archival and forensic audit of Commodore 64 SID music. Unlike traditional formats (.sid, .vgm), this captures the **internal silicon state** of the MOS 6581/8580 chips, enabling zero-drift reconstruction.
 
@@ -229,7 +229,7 @@ Optional algorithmic findings:
 
 ## Determinism & Playback Rules
 
-For 100% fidelity, a playback engine MUST:
+For high-fidelity replay, a playback engine should:
 
 ### 1. Cycle-Exact Latching
 
