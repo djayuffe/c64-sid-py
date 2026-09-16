@@ -1,8 +1,18 @@
-# c64sid 0.3.1
+# c64sid 0.3.2
 
 Python tools for rendering PSID/RSID files, capturing SID-PRO
 forensic data, and inspecting that data. The project is deterministic where
 practical, but it is not a cycle-exact or analog-perfect C64/SID emulator.
+
+## Features
+
+| Need | Supported command or API |
+| --- | --- |
+| Inspect a PSID/RSID file | `c64sid-inspect music.sid` |
+| Render a selected subsong to WAV | `c64sid-render music.sid output.wav --song 2` |
+| Capture emulator telemetry | `c64sid-render ... --dump-sidpro capture.sidpro` |
+| Analyze or visualize a capture | `c64sid-analyze`, `c64sid-visualize` |
+| Export capture data | `c64sid-to-csv capture.sidpro --all` |
 
 ## Requirements and installation
 
@@ -15,11 +25,21 @@ Install from this checkout:
 python3 -m pip install .
 ```
 
-The install provides `c64sid-render`, `c64sid-analyze`, `c64sid-visualize`,
-and `c64sid-to-csv`. The same commands can be run from a
+The install provides `c64sid-inspect`, `c64sid-render`, `c64sid-analyze`,
+`c64sid-visualize`, and `c64sid-to-csv`. The same commands can be run from a
 source checkout with `python3 sid_render.py` and `python3 tools/<tool>.py`.
 
-## Usage
+## Quick start
+
+Inspect the file first to see its format, metadata, SID model, and valid
+subsong range:
+
+```bash
+c64sid-inspect music.sid
+c64sid-inspect music.sid --json
+```
+
+## Render and capture
 
 Render a SID file to WAV:
 
@@ -84,7 +104,13 @@ python3 examples/render_live_tone.py live-tone.wav --seconds 2 --frequency 440
 ```
 
 The command creates a standard mono PCM WAV using the maintained `SidChip`
-path. See [examples/README.md](examples/README.md) for details.
+path. A parser API example is also included:
+
+```bash
+python3 examples/inspect_sid.py music.sid
+```
+
+See [examples/README.md](examples/README.md) for details.
 
 Use `c64sid-render --help` to see input, ROM, telemetry, and output options,
 or `c64sid-render --version` to identify the installed build.
@@ -95,7 +121,8 @@ or `c64sid-render --version` to identify the installed build.
 - `tools/`: installed and source-checkout command-line utilities.
 - `tests/`: regression coverage for parsing, playback helpers, export, seeking,
   waveform resources, analysis, and package behavior.
-- `examples/`: small runnable examples using maintained APIs.
+- `examples/`: runnable tone rendering and SID inspection examples using
+  maintained APIs.
 - `SIDPRO_FORMAT.md`: the supported SID-PRO JSON and binary interfaces.
 
 ## Limitations

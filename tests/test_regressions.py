@@ -17,7 +17,7 @@ class RegressionTests(unittest.TestCase):
     def test_package_versions_are_aligned(self) -> None:
         import c64sid
 
-        self.assertEqual(c64sid.__version__, '0.3.1')
+        self.assertEqual(c64sid.__version__, '0.3.2')
 
     @staticmethod
     def _minimal_sid(*, songs: int = 1, start_song: int = 1) -> bytes:
@@ -138,6 +138,16 @@ class RegressionTests(unittest.TestCase):
         raw[6:8] = (0xFFFF).to_bytes(2, 'big')
         with self.assertRaises(ValueError):
             parse_sid_header(bytes(raw))
+
+    def test_inspector_formats_parseable_sid_metadata(self) -> None:
+        from tools.inspect_sid import format_header, header_to_dict
+
+        header, payload = parse_sid_header(self._minimal_sid(songs=2, start_song=2))
+        metadata = header_to_dict(header, len(payload))
+        self.assertEqual(metadata['songs'], 2)
+        self.assertEqual(metadata['start_song'], 2)
+        self.assertEqual(metadata['sid_chips'], [{'address': '$D400', 'model': 'UNKNOWN'}])
+        self.assertIn('Songs: 2 (default: 2)', format_header(metadata))
 
     def test_binary_export_preserves_all_supported_streams(self) -> None:
         export = SIDProForensicExport()

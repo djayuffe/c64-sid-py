@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.2 — 2026-09-16
+
+- Added `c64sid-inspect` and a parser API example for fast PSID/RSID metadata
+  inspection, including machine-readable JSON output.
+- Expanded the README with a feature map, quick-start workflow, commands,
+  API usage, and example discovery.
+- Added package classifiers, keywords, and repository/release metadata for
+  clearer package and GitHub discoverability.
+
 ## 0.3.1 — 2026-09-16
 
 - Added supported one-based subsong selection to the playback API and

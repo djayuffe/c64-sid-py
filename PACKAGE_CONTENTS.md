@@ -1,13 +1,13 @@
 # Repository contents
 
-The `c64sid` 0.3.1 source repository provides these supported surfaces:
+The `c64sid` 0.3.2 source repository provides these supported surfaces:
 
 | Area | Contents |
 | --- | --- |
 | Library | `c64sid.sid` playback, system, SID chip, parser, SID-PRO, analysis, and seeking modules |
 | Waveforms | Bundled 6581/8580 combined-waveform measurement tables |
-| CLI | `c64sid-render`, `c64sid-analyze`, `c64sid-visualize`, `c64sid-to-csv` |
-| Live example | `examples/render_live_tone.py` renders a playable PCM WAV tone |
+| CLI | `c64sid-inspect`, `c64sid-render`, `c64sid-analyze`, `c64sid-visualize`, `c64sid-to-csv` |
+| Examples | `examples/render_live_tone.py` and `examples/inspect_sid.py` |
 | Validation | `tests/` and `ruff check .` |
 
 Install with `python3 -m pip install .`. See [README.md](README.md) for usage
