@@ -43,18 +43,3 @@ def decode_varint(data: bytes, offset: int = 0) -> tuple[int, int]:
             raise ValueError("VarInt too large (>64 bits)")
 
     raise ValueError("Incomplete VarInt at end of data")
-
-
-def encode_varint_signed(value: int) -> bytes:
-    """Encode signed integer using zigzag encoding + varint."""
-    # ZigZag: 0 -> 0, -1 -> 1, 1 -> 2, -2 -> 3, 2 -> 4, ...
-    zigzag = (value << 1) ^ (value >> 63) if value < 0 else (value << 1)
-    return encode_varint(zigzag)
-
-
-def decode_varint_signed(data: bytes, offset: int = 0) -> tuple[int, int]:
-    """Decode signed varint using zigzag decoding."""
-    zigzag, consumed = decode_varint(data, offset)
-    # Reverse zigzag
-    value = (zigzag >> 1) ^ (-(zigzag & 1))
-    return value, consumed

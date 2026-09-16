@@ -11,44 +11,22 @@ from c64sid.sid.sid_parser import parse_sid_header
 from c64sid.sid.sidpro_binary import CHUNK_EOF, MAGIC, export_to_binary, load_from_binary
 from c64sid.sid.sidpro_forensic import SIDProForensicExport
 from tools.sidpro_to_csv import export_bus_events_csv
-from tools.sidpro_to_vgm import write_vgm
 
 
 class RegressionTests(unittest.TestCase):
     def test_package_versions_are_aligned(self) -> None:
         import c64sid
-        import patches
 
-        self.assertEqual(c64sid.__version__, '0.2.0')
-        self.assertEqual(patches.__version__, c64sid.__version__)
-
-    def test_reference_trace_and_register_helpers(self) -> None:
-        from c64sid.sid.cia_names import analyze_cia_write, get_cia_reg_name
-        from c64sid.sid.trace_recorder import SidTraceRecorder, b64encode_bytes
-        from c64sid.sid.vic_names import analyze_vic_write, get_vic_reg_name
-
-        recorder = SidTraceRecorder()
-        recorder.set_cycle(7)
-        recorder.tick(0x12)
-        recorder.tick_idle(2, 0x34)
-        cycles, data = recorder.snapshot()
-        self.assertEqual(cycles, b'\x07\x00\x00\x00\x08\x00\x00\x00\x09\x00\x00\x00')
-        self.assertEqual(data, b'\x12\x34\x34')
-        self.assertEqual(b64encode_bytes(b'abc', chunk_size=1), 'YWJj')
-        self.assertEqual(get_cia_reg_name(0x1D), 'ICR')
-        self.assertIn('set mask', analyze_cia_write(0x0D, 0x81))
-        self.assertEqual(get_vic_reg_name(0x11), 'CTRL1')
-        self.assertIn('den=1', analyze_vic_write(0x11, 0x10))
+        self.assertEqual(c64sid.__version__, '0.3.0')
 
     def test_bundled_resid_combined_waveform_tables_load(self) -> None:
-        from patches.combined_waveforms import CombinedWaveformTables
         from c64sid.sid.resid_lut import load_combined_waveform_table
 
-        tables = CombinedWaveformTables('6581')
-        self.assertTrue(tables.loaded_resid_tables)
-        self.assertEqual(len(tables.tables[0x30]), 4096)
-        self.assertNotEqual(tables.tables[0x50], tables.tables[0x60])
-        self.assertEqual(tables.tables[0x30][1], load_combined_waveform_table('6581', 0x30)[1])
+        triangle_saw = load_combined_waveform_table('6581', 0x30)
+        pulse_saw = load_combined_waveform_table('6581', 0x60)
+        self.assertEqual(len(triangle_saw), 4096)
+        self.assertNotEqual(triangle_saw, pulse_saw)
+        self.assertEqual(len(load_combined_waveform_table('8580', 0x70)), 4096)
 
     def test_sid_chip_uses_bundled_combined_waveform_tables(self) -> None:
         from c64sid.sid.resid_lut import load_combined_waveform_table
@@ -94,23 +72,6 @@ class RegressionTests(unittest.TestCase):
         loops_second = PatternFinder.find_loops(export, min_length=2)
         self.assertEqual(loops_first, loops_second)
         self.assertTrue(all(len(loop['pattern_hash']) == 64 for loop in loops_first))
-
-    def test_enhanced_wrapper_applies_its_public_configuration(self) -> None:
-        from patches import create_enhanced_emulator
-        from patches.cycle_exact_tests import run_component_smoke_tests
-
-        emulator = create_enhanced_emulator(
-            combined_waveforms=False,
-            adsr_pipeline=False,
-            noise_seed=0x123456,
-            num_chips=2,
-        )
-        self.assertFalse(emulator.sids[0].cfg.enableCombinedWaveforms)
-        self.assertFalse(emulator.sids[0].cfg.enableAdsrPipeline)
-        self.assertEqual(emulator.sids[0].cfg.noiseSeed, 0x123456)
-        emulator.write_register(0, 0x55, chip=1)
-        self.assertEqual(emulator.sids[1].regs[0], 0x55)
-        self.assertEqual(run_component_smoke_tests(emulator)['failed'], 0)
 
     def test_call_stops_at_routine_return(self) -> None:
         system = C64System()
@@ -211,15 +172,13 @@ class RegressionTests(unittest.TestCase):
         self.assertTrue(sid.gate[1])
         self.assertEqual(sid.regs[0x07:0x0E], bytes([0x56, 0x34, 0x89, 0x07, 0x21, 0x42, 0xA3]))
 
-    def test_csv_supports_uncompressed_exports_and_vgm_is_rejected(self) -> None:
+    def test_csv_supports_uncompressed_exports(self) -> None:
         export = SIDProForensicExport()
         export.set_bus_stream(cycles_f64=b'\x00' * 8, events_u8=bytes([0, 1, 2]))
         with tempfile.TemporaryDirectory() as directory:
             csv_path = Path(directory) / 'events.csv'
             export_bus_events_csv(export, str(csv_path))
             self.assertIn('Register_Hex', csv_path.read_text(encoding='utf-8'))
-            with self.assertRaises(ValueError):
-                write_vgm(export, str(Path(directory) / 'events.vgm'))
 
     def test_direct_voice_mix_is_not_doubled(self) -> None:
         from c64sid.sid.sid_chip import SidChip
@@ -233,6 +192,18 @@ class RegressionTests(unittest.TestCase):
         sid.phase[1] = 0xFFFFFF
         # A single unfiltered voice is scaled exactly once by the final /3 mix.
         self.assertAlmostEqual(sid.render_sample(), 1.0 / 3.0, places=4)
+
+    def test_live_example_renders_pcm_wav(self) -> None:
+        import wave
+        from examples.render_live_tone import render_tone
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'live-tone.wav'
+            frames = render_tone(output, seconds=0.01, sample_rate=8_000, frequency=440)
+            self.assertEqual(frames, 80)
+            with wave.open(str(output), 'rb') as wav:
+                self.assertEqual((wav.getnchannels(), wav.getsampwidth(), wav.getframerate()), (1, 2, 8_000))
+                self.assertEqual(wav.getnframes(), frames)
 
 
 if __name__ == '__main__':

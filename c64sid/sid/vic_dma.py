@@ -32,8 +32,3 @@ class VicDma:
             return False
         cycle_in_line = vic.cycleCounter % max(1, vic.cyclesPerLine)
         return 15 <= cycle_in_line <= 54
-
-    @staticmethod
-    def calculate_stolen_cycles(vic: VicII) -> int:
-        # legacy API (kept for compatibility) — total stolen cycles per badline
-        return 40 if VicDma.is_bad_line(vic) else 0

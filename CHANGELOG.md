@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-09-16
+
+- Removed the duplicate experimental `patches` package and its disconnected
+  helpers, retired documentation aliases, compatibility shim, redundant fix
+  verifier, and nonfunctional VGM command.
+- Added a runnable live SID tone renderer using the maintained `SidChip` path.
+- Reduced packaging and documentation to maintained APIs and commands only.
+
 ## 0.2.0 — 2026-09-16
 
 - Repaired binary SID-PRO parsing: mandatory EOF, complete headers, CRC/flag,
