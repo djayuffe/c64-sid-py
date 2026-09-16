@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import wave
+import math
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Callable
@@ -45,6 +47,7 @@ class PlaybackCoordinator:
         self.c64 = C64System(self.cfg)
         self.header: Optional[SidHeader] = None
         self.sid_data: Optional[bytes] = None
+        self.song: Optional[int] = None
 
         # SID-PRO forensic export (optional)
         self._sidpro_path: Optional[str] = None
@@ -63,16 +66,37 @@ class PlaybackCoordinator:
             1 => capture telemetry every frame (50/60Hz)
             2 => every 2nd frame, etc.
         """
+        if not str(path):
+            raise ValueError('SID-PRO output path must not be empty')
+        if isinstance(telemetry_rate, bool) or not isinstance(telemetry_rate, int) or telemetry_rate < 1:
+            raise ValueError('SID-PRO telemetry rate must be a positive integer')
+
         self._sidpro_path = str(path)
         self._sidpro_compress = bool(compress)
-        self._sidpro_telemetry_div = max(1, int(telemetry_rate))
+        self._sidpro_telemetry_div = int(telemetry_rate)
         self._sidpro_verbose_sid = bool(verbose_sid)
         self._sidpro_io_trace = bool(io_trace)
 
-    def load_sid_bytes(self, raw: bytes) -> None:
+    def load_sid_bytes(self, raw: bytes, *, song: Optional[int] = None) -> None:
+        """Load a SID file and initialize the selected one-based subsong.
+
+        When ``song`` is omitted, the file's declared start song is used.
+        """
         hdr, mem = parse_sid_header(raw)
+        selected_song = hdr.startSong if song is None else int(song)
+        if not 1 <= selected_song <= hdr.songs:
+            raise ValueError(f'Song {selected_song} is outside the valid range 1-{hdr.songs}')
+
+        # A coordinator can be reused. Detach an old capture before resetting the
+        # machine so a subsequent load never writes into a stale export.
+        self.c64.memory.uninstall_sidpro()
+        self.c64.memory.uninstall_iopro()
+        self._iopro_recorder = None
+        self._sidpro_export = None
+        self._sidpro_recorder = None
         self.header = hdr
         self.sid_data = mem
+        self.song = selected_song
 
         SystemLogger.log('Playback', f"Loaded '{hdr.title}' by {hdr.author} ({hdr.released})", 'info')
         SystemLogger.log('Playback', f"System: {'NTSC' if hdr.isNtsc else 'PAL'} | SIDs: {hdr.sidCount} | BASIC: {hdr.c64BasicFlag}", 'info')
@@ -127,7 +151,7 @@ class PlaybackCoordinator:
                 sid_bases=[int(x) for x in hdr.sidAddresses[:hdr.sidCount]],
                 sample_rate=0,
                 frame_rate=(60.0 if hdr.isNtsc else 50.0) / float(self._sidpro_telemetry_div),
-                song=max(1, hdr.startSong),
+                song=selected_song,
                 title=str(hdr.title),
                 author=str(hdr.author),
                 released=str(hdr.released),
@@ -140,13 +164,12 @@ class PlaybackCoordinator:
             )
 
         # Set song number in A
-        song = max(1, hdr.startSong)
-        self.c64.cpu.a = (song - 1) & 0xFF
+        self.c64.cpu.a = (selected_song - 1) & 0xFF
 
         # Call init
         if hdr.initAddress != 0:
-            SystemLogger.log('Playback', f"Calling init at ${hdr.initAddress:04X} (song {song})", 'info')
-            self.c64.call(hdr.initAddress, a=(song-1)&0xFF, x=0, y=0)
+            SystemLogger.log('Playback', f"Calling init at ${hdr.initAddress:04X} (song {selected_song})", 'info')
+            self.c64.call(hdr.initAddress, a=(selected_song - 1) & 0xFF, x=0, y=0)
         else:
             SystemLogger.log('Playback', 'No init address; skipping init', 'warn')
 
@@ -155,11 +178,16 @@ class PlaybackCoordinator:
         if self.header is None or self.sid_data is None:
             raise RuntimeError('No SID loaded')
 
-        if not 8000 <= sample_rate <= 96000:
-            raise ValueError(f"Sample rate {sample_rate} out of range [8000-96000]")
+        duration = float(seconds)
+        if not math.isfinite(duration) or duration <= 0:
+            raise ValueError('Render duration must be a finite positive number of seconds')
+        if isinstance(sample_rate, bool) or not isinstance(sample_rate, int) or not 8000 <= sample_rate <= 96000:
+            raise ValueError(f"Sample rate {sample_rate} must be an integer in [8000-96000]")
 
         hdr = self.header
-        frames = int(max(0.0, float(seconds)) * sample_rate)
+        frames = int(round(duration * sample_rate))
+        if frames < 1:
+            raise ValueError('Render duration is shorter than one output sample')
 
         # Determine play cadence
         # Check if CIA timer based (speed bit pattern) or VBI
@@ -210,6 +238,8 @@ class PlaybackCoordinator:
             telemetry_period = int(cycles_per_frame) * telemetry_div
             next_telemetry_cycle = int(self.c64.cpu.cycles)
             telemetry_frame = 0
+            pcm_buffer = array('h')
+            progress_interval = max(1, sample_rate // 10)
 
             def capture_telemetry() -> None:
                 nonlocal telemetry_frame
@@ -223,9 +253,17 @@ class PlaybackCoordinator:
                 })
                 telemetry_frame += 1
 
+            def flush_pcm() -> None:
+                if not pcm_buffer:
+                    return
+                if sys.byteorder != 'little':
+                    pcm_buffer.byteswap()
+                wf.writeframesraw(pcm_buffer.tobytes())
+                pcm_buffer.clear()
+
             for n in range(frames):
                 # Progress callback
-                if progress_callback and n % 4410 == 0:  # Report every 0.1s at 44.1kHz
+                if progress_callback and n % progress_interval == 0:
                     progress = n / frames
                     progress_callback(progress)
 
@@ -263,7 +301,13 @@ class PlaybackCoordinator:
                         s += sid.render_sample()
                     s /= len(self.c64.sids)  # Average multiple SIDs
 
-                wf.writeframesraw(_i16(s).to_bytes(2, byteorder='little', signed=True))
+                pcm_buffer.append(_i16(s))
+                if len(pcm_buffer) >= 4096:
+                    flush_pcm()
+
+            flush_pcm()
+            if progress_callback:
+                progress_callback(1.0)
 
         # SID-PRO finalize
         if self._sidpro_export and self._sidpro_recorder and self._sidpro_path:
@@ -271,7 +315,6 @@ class PlaybackCoordinator:
 
             # Pack cycles as float64 little-endian
             a = array('d', (float(v) for v in self._sidpro_recorder.cycles))
-            import sys
             if sys.byteorder != 'little':
                 a.byteswap()
             cycles_raw = a.tobytes()
@@ -282,7 +325,6 @@ class PlaybackCoordinator:
             if self._iopro_recorder and self._sidpro_io_trace:
                 self._iopro_recorder.assert_consistent()
                 io_a = array('d', (float(v) for v in self._iopro_recorder.cycles))
-                import sys
                 if sys.byteorder != 'little':
                     io_a.byteswap()
                 io_cycles_raw = io_a.tobytes()

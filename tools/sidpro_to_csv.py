@@ -9,6 +9,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from c64sid.sid.analysis import SIDAnalyzer
 from c64sid.sid.sidpro_forensic import SIDProForensicExport
 
 
@@ -106,11 +107,10 @@ def export_telemetry_csv(export: SIDProForensicExport, output_path: str):
 
 def export_analysis_csv(export: SIDProForensicExport, output_path: str):
     """Export analysis results to CSV."""
-    analysis = export.analysis
-
-    if not analysis:
-        print("No analysis data in export")
-        return
+    # Playback captures contain raw telemetry. Derive an analysis report when
+    # one was not persisted by another tool so --all always produces its
+    # documented CSV set.
+    analysis = export.analysis or SIDAnalyzer.analyze_full(export)
 
     with open(output_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c64sid"
-version = "0.3.0"
+version = "0.3.1"
 description = "Python C64 SID playback, rendering, forensic-capture, and analysis toolkit"
 readme = "README.md"
 requires-python = ">=3.10"

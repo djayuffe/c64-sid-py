@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.1 — 2026-09-16
+
+- Added supported one-based subsong selection to the playback API and
+  `c64sid-render --song`.
+- Validated render and SID-PRO capture arguments, made command-line failures
+  actionable, and report render progress through completion.
+- Buffered PCM writing for substantially lower I/O overhead during long
+  renders, while preserving standard little-endian WAV output.
+- Made `c64sid-to-csv --all` derive an analysis CSV from a raw capture instead
+  of silently omitting it.
+- Expanded usage, API, and live-example documentation and added regression
+  coverage for the playback contract.
+
 ## 0.3.0 — 2026-09-16
 
 - Removed the duplicate experimental `patches` package and its disconnected

@@ -10,14 +10,28 @@ from c64sid.sid.playback.seeking import SeekEngine
 from c64sid.sid.sid_parser import parse_sid_header
 from c64sid.sid.sidpro_binary import CHUNK_EOF, MAGIC, export_to_binary, load_from_binary
 from c64sid.sid.sidpro_forensic import SIDProForensicExport
-from tools.sidpro_to_csv import export_bus_events_csv
+from tools.sidpro_to_csv import export_analysis_csv, export_bus_events_csv
 
 
 class RegressionTests(unittest.TestCase):
     def test_package_versions_are_aligned(self) -> None:
         import c64sid
 
-        self.assertEqual(c64sid.__version__, '0.3.0')
+        self.assertEqual(c64sid.__version__, '0.3.1')
+
+    @staticmethod
+    def _minimal_sid(*, songs: int = 1, start_song: int = 1) -> bytes:
+        """Create a PSID whose init routine immediately returns."""
+        raw = bytearray(0x77)
+        raw[0:4] = b'PSID'
+        raw[4:6] = (1).to_bytes(2, 'big')
+        raw[6:8] = (0x76).to_bytes(2, 'big')
+        raw[8:10] = (0x1000).to_bytes(2, 'big')
+        raw[10:12] = (0x1000).to_bytes(2, 'big')
+        raw[14:16] = songs.to_bytes(2, 'big')
+        raw[16:18] = start_song.to_bytes(2, 'big')
+        raw[0x76] = 0x60  # RTS
+        return bytes(raw)
 
     def test_bundled_resid_combined_waveform_tables_load(self) -> None:
         from c64sid.sid.resid_lut import load_combined_waveform_table
@@ -80,6 +94,34 @@ class RegressionTests(unittest.TestCase):
         elapsed = system.call(0x1000, max_cycles=32)
         self.assertLess(elapsed, 32)
         self.assertEqual(system.cpu.pc, 0x2000)
+
+    def test_playback_selects_subsongs_validates_arguments_and_reports_completion(self) -> None:
+        import math
+        import wave
+        from c64sid.sid.playback import PlaybackCoordinator
+
+        player = PlaybackCoordinator()
+        player.load_sid_bytes(self._minimal_sid(songs=2, start_song=2), song=1)
+        self.assertEqual(player.song, 1)
+        with self.assertRaises(ValueError):
+            player.load_sid_bytes(self._minimal_sid(songs=2), song=3)
+        with self.assertRaises(ValueError):
+            player.enable_sidpro_export('capture.sidpro', telemetry_rate=0)
+
+        progress = []
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / 'nested' / 'tone.wav'
+            result = player.render_to_wav(output, seconds=0.01, sample_rate=8_000, progress_callback=progress.append)
+            self.assertEqual(result.samples, 80)
+            self.assertEqual(progress[0], 0.0)
+            self.assertEqual(progress[-1], 1.0)
+            with wave.open(str(output), 'rb') as wav:
+                self.assertEqual(wav.getnframes(), 80)
+
+        with self.assertRaises(ValueError):
+            player.render_to_wav('ignored.wav', seconds=0, sample_rate=8_000)
+        with self.assertRaises(ValueError):
+            player.render_to_wav('ignored.wav', seconds=math.nan, sample_rate=8_000)
 
     def test_parser_rejects_bad_offsets_and_sid_addresses(self) -> None:
         raw = bytearray(0x7D)
@@ -179,6 +221,9 @@ class RegressionTests(unittest.TestCase):
             csv_path = Path(directory) / 'events.csv'
             export_bus_events_csv(export, str(csv_path))
             self.assertIn('Register_Hex', csv_path.read_text(encoding='utf-8'))
+            analysis_path = Path(directory) / 'analysis.csv'
+            export_analysis_csv(export, str(analysis_path))
+            self.assertIn('BPM', analysis_path.read_text(encoding='utf-8'))
 
     def test_direct_voice_mix_is_not_doubled(self) -> None:
         from c64sid.sid.sid_chip import SidChip

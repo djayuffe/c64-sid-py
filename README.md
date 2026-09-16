@@ -1,4 +1,4 @@
-# c64sid 0.3.0
+# c64sid 0.3.1
 
 Python tools for rendering PSID/RSID files, capturing SID-PRO
 forensic data, and inspecting that data. The project is deterministic where
@@ -27,6 +27,15 @@ Render a SID file to WAV:
 c64sid-render music.sid output.wav --seconds 30
 ```
 
+Render a particular one-based subsong and choose the output rate:
+
+```bash
+c64sid-render music.sid output.wav --song 2 --seconds 90 --rate 48000
+```
+
+`--song` must be within the tune's declared range. The renderer accepts a
+finite positive duration and a sample rate from 8,000 through 96,000 Hz.
+
 Capture SID-PRO JSON alongside the WAV:
 
 ```bash
@@ -41,6 +50,9 @@ c64sid-visualize capture.sidpro --envelope --voice 0
 c64sid-to-csv capture.sidpro --all --output-prefix capture
 ```
 
+The CSV tool derives its analysis report from telemetry when a capture does
+not already contain persisted analysis data.
+
 ## Python API
 
 ```python
@@ -48,7 +60,7 @@ from c64sid.sid.playback import PlaybackCoordinator
 
 player = PlaybackCoordinator()
 player.enable_sidpro_export('capture.sidpro')
-player.load_sid_bytes(sid_bytes)
+player.load_sid_bytes(sid_bytes, song=2)
 result = player.render_to_wav('output.wav', seconds=30)
 print(result.samples)
 ```
@@ -73,6 +85,9 @@ python3 examples/render_live_tone.py live-tone.wav --seconds 2 --frequency 440
 
 The command creates a standard mono PCM WAV using the maintained `SidChip`
 path. See [examples/README.md](examples/README.md) for details.
+
+Use `c64sid-render --help` to see input, ROM, telemetry, and output options,
+or `c64sid-render --version` to identify the installed build.
 
 ## Project layout
 
