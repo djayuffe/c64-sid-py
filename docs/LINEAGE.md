@@ -1,12 +1,10 @@
 # Lineage
 
-The canonical source for this repository is `c64sid_py_complete_FULL_FIX_v2`,
-packaged as version 0.3.1 in `pyproject.toml`.
+`c64-sid-py` is a curated, auditable Python codebase for C64 SID inspection,
+rendering, capture, and analysis. Historical snapshots with overlapping
+implementations are intentionally not merged into this working tree without a
+reviewable common history.
 
-The following materials are related historical snapshots and are deliberately
-not merged into this working tree: the `c64sid_v8` through `c64sid_v36` archive
-series and the unversioned `sid/` component snapshot. They contain overlapping
-implementations without an auditable common history.
-
-Generated caches, Python package metadata, audio renders, and SID-PRO captures
-are excluded from version control.
+Generated caches, package metadata, rendered audio, SID-PRO captures, CSV
+exports, and VGM files are excluded from version control. The tracked source,
+documentation, examples, and tests are the supported project surface.

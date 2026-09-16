@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.4 — 2026-09-16
+
+- Integrated the concurrent public import's portable PCM buffer reset, which
+  avoids relying on `array.clear` across supported Python runtimes.
+- Rewrote lineage guidance around the public `c64-sid-py` project and restored
+  comprehensive ignores for generated capture, export, and build artifacts.
+
 ## 0.3.3 — 2026-09-16
 
 - Updated package repository and release URLs to the public `c64-sid-py`

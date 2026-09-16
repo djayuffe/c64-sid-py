@@ -1,4 +1,4 @@
-# c64sid 0.3.3
+# c64sid 0.3.4
 
 Python tools for rendering PSID/RSID files, capturing SID-PRO
 forensic data, and inspecting that data. The project is deterministic where

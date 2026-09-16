@@ -1,3 +1,3 @@
 """C64 SID playback, forensic-capture, and analysis tools."""
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"

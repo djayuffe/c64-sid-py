@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "c64sid"
-version = "0.3.3"
+version = "0.3.4"
 description = "Inspect PSID/RSID files, render C64 SID audio to WAV, capture SID-PRO telemetry, and analyze or export results"
 readme = "README.md"
 requires-python = ">=3.10"
